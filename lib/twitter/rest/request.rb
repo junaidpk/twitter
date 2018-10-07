@@ -85,13 +85,16 @@ module Twitter
 
       def fail_or_return_response_body(code, body, headers, digest = nil)
         error = error(code, body, headers)
+        @rate_limit = Twitter::RateLimit.new(headers)
         if error
           puts "+++++++++++++++++++++++++"
           puts "Error on request: #{digest}"
+          puts "limit: #{@rate_limit.limit}"
+          puts "remaining: #{@rate_limit.remaining}"
+          puts "reset_at: #{@rate_limit.reset_at}"
           puts "+++++++++++++++++++++++++"
           raise(error)
         end
-        @rate_limit = Twitter::RateLimit.new(headers)
         body
       end
 
