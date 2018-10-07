@@ -7,6 +7,7 @@ require 'twitter/error'
 require 'twitter/headers'
 require 'twitter/rate_limit'
 require 'twitter/utils'
+require 'digest/sha1'
 
 module Twitter
   module REST
@@ -33,10 +34,16 @@ module Twitter
 
       # @return [Array, Hash]
       def perform
+        digest = Digest::SHA1.hexdigest(@headers.inspect)[0..2]
         response = http_client.headers(@headers).public_send(@request_method, @uri.to_s, @options_key => @options)
         response_body = response.body.empty? ? '' : symbolize_keys!(response.parse)
         response_headers = response.headers
-        fail_or_return_response_body(response.code, response_body, response_headers)
+        puts "#{digest} ==============================="
+        puts "#{digest} headers: #{@headers.inspect}"
+        puts "#{digest} request_method: #{@request_method.inspect}"
+        puts "#{digest} response uri: #{response.uri.to_s}"
+        puts "#{digest} ==============================="
+        fail_or_return_response_body(response.code, response_body, response_headers, digest)
       end
 
     private
@@ -76,9 +83,14 @@ module Twitter
         end
       end
 
-      def fail_or_return_response_body(code, body, headers)
+      def fail_or_return_response_body(code, body, headers, digest = nil)
         error = error(code, body, headers)
-        raise(error) if error
+        if error
+          puts "+++++++++++++++++++++++++"
+          puts "Error on request: #{digest}"
+          puts "+++++++++++++++++++++++++"
+          raise(error)
+        end
         @rate_limit = Twitter::RateLimit.new(headers)
         body
       end
